@@ -110,7 +110,6 @@ int main(int argc, char **argv) {
   gettimeofday(&start_time, NULL);
 
   int chunk_size = array_size / pnum;
-  int remainder = array_size % pnum;
 
   for (int i = 0; i < pnum; i++) {
     pid_t child_pid = fork();
