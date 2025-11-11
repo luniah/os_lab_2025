@@ -11,6 +11,8 @@
 #include <sys/socket.h>
 #include <sys/types.h>
 
+#include "mult_modulo.h"
+
 #include "pthread.h"
 
 struct FactorialArgs {
@@ -19,23 +21,13 @@ struct FactorialArgs {
   uint64_t mod;
 };
 
-uint64_t MultModulo(uint64_t a, uint64_t b, uint64_t mod) {
-  uint64_t result = 0;
-  a = a % mod;
-  while (b > 0) {
-    if (b % 2 == 1)
-      result = (result + a) % mod;
-    a = (a * 2) % mod;
-    b /= 2;
-  }
-
-  return result % mod;
-}
-
 uint64_t Factorial(const struct FactorialArgs *args) {
   uint64_t ans = 1;
 
-  // TODO: your code here
+  // Вычисляем факториал для диапазона [begin, end]
+  for (uint64_t i = args->begin; i <= args->end; i++) {
+    ans = MultModulo(ans, i, args->mod);
+  }
 
   return ans;
 }
@@ -67,11 +59,19 @@ int main(int argc, char **argv) {
       switch (option_index) {
       case 0:
         port = atoi(optarg);
-        // TODO: your code here
+        // Проверка валидности порта
+        if (port <= 0) {
+          fprintf(stderr, "Invalid port number: %d\n", port);
+          return 1;
+        }
         break;
       case 1:
         tnum = atoi(optarg);
-        // TODO: your code here
+        // Проверка валидности числа потоков
+        if (tnum <= 0) {
+          fprintf(stderr, "Invalid thread count: %d\n", tnum);
+          return 1;
+        }
         break;
       default:
         printf("Index %d is out of options\n", option_index);
@@ -157,14 +157,14 @@ int main(int argc, char **argv) {
       fprintf(stdout, "Receive: %llu %llu %llu\n", begin, end, mod);
 
       struct FactorialArgs args[tnum];
+      uint64_t step = (end - begin + 1) / tnum;
       for (uint32_t i = 0; i < tnum; i++) {
-        // TODO: parallel somehow
-        args[i].begin = 1;
-        args[i].end = 1;
+        // Распределяем диапазоны между потоками
+        args[i].begin = begin + i * step;
+        args[i].end = (i == tnum - 1) ? end : args[i].begin + step - 1;
         args[i].mod = mod;
 
-        if (pthread_create(&threads[i], NULL, ThreadFactorial,
-                           (void *)&args[i])) {
+        if (pthread_create(&threads[i], NULL, ThreadFactorial, (void *)&args[i])) {
           printf("Error: pthread_create failed!\n");
           return 1;
         }
